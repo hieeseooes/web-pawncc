@@ -421,6 +421,9 @@ main()
   // Activity Rail Tab: 'explorer' | 'includes' | 'settings'
   let activityTab = $state<'explorer' | 'includes' | 'settings'>('explorer');
 
+  // Mobile viewport tab navigation: 'editor' | 'explorer' | 'output' | 'includes'
+  let mobileTab = $state<'editor' | 'explorer' | 'output' | 'includes'>('editor');
+
   // Diagnostics & Output View State (focused directly on 'raw' Terminal by default)
   let activeOutputView = $state<'issues' | 'raw'>('raw');
   let diagnosticsFilter = $state<'all' | 'errors' | 'warnings'>('all');
@@ -716,6 +719,7 @@ main()
     if (editorView && activeFileName && fileContents[activeFileName] !== undefined) {
       fileContents[activeFileName] = editorView.state.doc.toString();
     }
+    mobileTab = 'editor';
     if (filename === activeFileName) return;
     activeFileName = filename;
     if (editorView) {
@@ -838,6 +842,7 @@ main()
 
     isCompiling = true;
     isOutputOpen = true;
+    mobileTab = 'output';
     compileStatus = 'idle';
     consoleOutput = `Compiling project [Target: ${entryFileName}]...\nFlags: ${compilerFlags}\n\n`;
     diagnostics = [];
@@ -1037,7 +1042,7 @@ main()
   {/if}
 
   <!-- Main Multi-Pane IDE Workspace with Left Activity Rail -->
-  <div class="ide-workspace {isOutputOpen ? 'has-output' : 'editor-fullscreen'}">
+  <div class="ide-workspace {isOutputOpen ? 'has-output' : 'editor-fullscreen'} mobile-view-{mobileTab}">
     <!-- 1. Left Activity Rail Dock (46px) -->
     <nav class="activity-rail" aria-label="Activity Rail">
       <div class="rail-group-top">
@@ -1452,6 +1457,44 @@ main()
       </section>
     {/if}
   </div>
+
+  <!-- Mobile Bottom Navigation Dock (renders only on small screens <= 768px) -->
+  <nav class="mobile-bottom-bar" aria-label="Mobile Navigation">
+    <button 
+      class="mobile-tab-btn {mobileTab === 'editor' ? 'active' : ''}" 
+      onclick={() => mobileTab = 'editor'}
+    >
+      <FileCode size={18} />
+      <span>Editor</span>
+    </button>
+    <button 
+      class="mobile-tab-btn {mobileTab === 'explorer' ? 'active' : ''}" 
+      onclick={() => { mobileTab = 'explorer'; activityTab = 'explorer'; }}
+    >
+      <FolderTree size={18} />
+      <span>Files</span>
+      <span class="mobile-badge">{fileList.length}</span>
+    </button>
+    <button 
+      class="mobile-tab-btn {mobileTab === 'output' ? 'active' : ''}" 
+      onclick={() => { mobileTab = 'output'; isOutputOpen = true; }}
+    >
+      <Terminal size={18} />
+      <span>Terminal</span>
+      {#if errorCount > 0}
+        <span class="mobile-badge danger">{errorCount}</span>
+      {:else if warningCount > 0}
+        <span class="mobile-badge warning">{warningCount}</span>
+      {/if}
+    </button>
+    <button 
+      class="mobile-tab-btn {mobileTab === 'includes' ? 'active' : ''}" 
+      onclick={() => { mobileTab = 'includes'; activityTab = 'includes'; }}
+    >
+      <Package size={18} />
+      <span>Includes</span>
+    </button>
+  </nav>
 
   <!-- Custom Right-Click Context Menu -->
   {#if contextMenu.visible}
@@ -2511,5 +2554,232 @@ main()
     height: 1px;
     background: #191A23;
     margin: 2px 0;
+  }
+
+  /* Mobile Bottom Navigation Bar (Hidden on Desktop) */
+  .mobile-bottom-bar {
+    display: none;
+  }
+
+  /* Responsive Mobile Layout (max-width: 768px) */
+  @media (max-width: 768px) {
+    .app-header {
+      padding: 0 8px;
+      height: 44px;
+      gap: 6px;
+    }
+
+    .brand-section {
+      gap: 6px;
+    }
+
+    .brand-title {
+      font-size: 13px;
+    }
+
+    .brand-badge {
+      display: none;
+    }
+
+    .engine-status span:last-child {
+      display: none;
+    }
+    .engine-status {
+      padding: 3px;
+      background: transparent !important;
+    }
+
+    .actions-section {
+      gap: 5px;
+    }
+
+    .dropdown-control {
+      padding: 1px 4px;
+      font-size: 11px;
+    }
+
+    .dropdown-control select {
+      font-size: 11px;
+      max-width: 95px;
+    }
+
+    .btn-icon-label {
+      padding: 4px 6px;
+      font-size: 11px;
+    }
+    .btn-icon-label span {
+      display: none;
+    }
+
+    .btn-primary-compile {
+      padding: 5px 10px;
+      font-size: 11px;
+      gap: 4px;
+    }
+    .btn-primary-compile .shortcut-tag {
+      display: none;
+    }
+
+    .btn-download-amx {
+      padding: 4px 8px;
+      font-size: 11px;
+      gap: 4px;
+    }
+    .btn-download-amx span:first-of-type {
+      display: none;
+    }
+
+    /* Workspace takes full height between header and bottom bar */
+    .ide-workspace {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 44px - 50px);
+      width: 100vw;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .activity-rail {
+      display: none !important;
+    }
+
+    /* Mobile Pane Visibility based on mobile-view-* */
+    .ide-workspace.mobile-view-editor .sidebar-pane,
+    .ide-workspace.mobile-view-editor .output-pane {
+      display: none !important;
+    }
+    .ide-workspace.mobile-view-editor .editor-pane {
+      display: flex !important;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border-right: none;
+    }
+
+    .ide-workspace.mobile-view-explorer .editor-pane,
+    .ide-workspace.mobile-view-explorer .output-pane {
+      display: none !important;
+    }
+    .ide-workspace.mobile-view-explorer .sidebar-pane {
+      display: flex !important;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border-right: none;
+    }
+
+    .ide-workspace.mobile-view-includes .editor-pane,
+    .ide-workspace.mobile-view-includes .output-pane {
+      display: none !important;
+    }
+    .ide-workspace.mobile-view-includes .sidebar-pane {
+      display: flex !important;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border-right: none;
+    }
+
+    .ide-workspace.mobile-view-output .editor-pane,
+    .ide-workspace.mobile-view-output .sidebar-pane {
+      display: none !important;
+    }
+    .ide-workspace.mobile-view-output .output-pane {
+      display: flex !important;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border-right: none;
+    }
+
+    .editor-tab-bar {
+      height: 32px;
+      padding: 0 8px;
+    }
+
+    .editor-right-hint {
+      display: none;
+    }
+
+    .breadcrumb-bar {
+      height: 22px;
+      font-size: 10px;
+      padding: 0 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+
+    .editor-status-bar {
+      height: 22px;
+      font-size: 10px;
+      padding: 0 8px;
+    }
+    .editor-status-bar .status-left span:nth-child(2),
+    .editor-status-bar .status-left span:nth-child(3),
+    .editor-status-bar .status-left span:nth-child(4) {
+      display: none;
+    }
+
+    .modal-card {
+      width: 92vw;
+      max-width: 380px;
+    }
+
+    /* Mobile Bottom Navigation Dock */
+    .mobile-bottom-bar {
+      display: flex;
+      height: 50px;
+      background: #0A0A0D;
+      border-top: 1px solid #191A23;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 4px;
+      user-select: none;
+      z-index: 50;
+      flex-shrink: 0;
+    }
+
+    .mobile-tab-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: transparent;
+      border: none;
+      color: #71717A;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 5px 0;
+      cursor: pointer;
+      position: relative;
+      transition: color 0.15s ease;
+    }
+    .mobile-tab-btn.active {
+      color: #FFC799;
+      font-weight: 700;
+    }
+
+    .mobile-badge {
+      position: absolute;
+      top: 3px;
+      right: calc(50% - 18px);
+      font-size: 9px;
+      font-weight: 700;
+      line-height: 1;
+      padding: 1px 4px;
+      border-radius: 8px;
+      background: #232533;
+      color: #FFFFFF;
+    }
+    .mobile-badge.danger {
+      background: #EF4444;
+      color: white;
+    }
+    .mobile-badge.warning {
+      background: #FFC799;
+      color: #070709;
+    }
   }
 </style>
