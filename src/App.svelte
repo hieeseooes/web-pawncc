@@ -608,8 +608,14 @@ main()
   <!-- Top Application Bar -->
   <header class="app-header">
     <div class="brand-section">
-      <div class="brand-logo">
-        <Cpu size={18} class="brand-icon" />
+      <div class="brand-logo" title="Pawn Studio Web">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="brand-icon">
+          <circle cx="12" cy="5.5" r="3" />
+          <path d="M9 10h6" />
+          <path d="M10 10c0 2.8-2 4.8-2.5 7.5h9c-.5-2.7-2.5-4.7-2.5-7.5" />
+          <rect x="6" y="17.5" width="12" height="2.5" rx="0.8" />
+          <path d="M5 21h14" />
+        </svg>
       </div>
       <div class="brand-text">
         <span class="brand-title">Pawn Studio Web</span>
