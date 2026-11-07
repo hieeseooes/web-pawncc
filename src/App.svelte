@@ -345,9 +345,11 @@ main()
   }
 
   onMount(async () => {
+    const rootUrl = new URL('.', window.location.href).href;
+
     // 1. Fetch available standard includes list
     try {
-      const incRes = await fetch(`${import.meta.env.BASE_URL}includes.json`);
+      const incRes = await fetch(new URL('includes.json', rootUrl).href);
       if (incRes.ok) {
         const data = await incRes.json();
         availableIncludes = Object.keys(data).sort();
@@ -396,6 +398,8 @@ main()
         diagnostics = diags;
         if (diags.length > 0) {
           activeOutputView = 'issues';
+        } else if (!success) {
+          activeOutputView = 'terminal';
         }
 
         if (amxBlobUrl) {
@@ -419,7 +423,7 @@ main()
       }
     };
 
-    worker.postMessage({ type: 'init' });
+    worker.postMessage({ type: 'init', baseUrl: rootUrl });
 
     // Hotkey: Ctrl+S or F5 to compile
     const handleKeydown = (e: KeyboardEvent) => {
@@ -572,8 +576,11 @@ main()
 
     const extraArgs = compilerFlags.split(' ').map(s => s.trim()).filter(Boolean);
 
+    const rootUrl = new URL('.', window.location.href).href;
+
     worker.postMessage({
       type: 'compile',
+      baseUrl: rootUrl,
       payload: {
         files: { ...fileContents },
         entryFile: entryFileName,

@@ -5,12 +5,26 @@ import { unzipSync } from 'fflate';
 
 let standardIncludes: Record<string, string> = {};
 let isInitialized = false;
+let baseAssetUrl = '';
+
+function resolveAssetUrl(relPath: string): string {
+  if (baseAssetUrl) {
+    return new URL(relPath, baseAssetUrl).href;
+  }
+  try {
+    return new URL(`../${relPath}`, self.location.href).href;
+  } catch (_) {
+    return `/${relPath}`;
+  }
+}
 
 // Load standard includes bundled in public/includes.json
-async function initIncludes() {
-  if (isInitialized) return;
+async function initIncludes(baseUrl?: string) {
+  if (baseUrl) baseAssetUrl = baseUrl;
+  if (isInitialized && Object.keys(standardIncludes).length > 0) return;
   try {
-    const res = await fetch(`${import.meta.env.BASE_URL}includes.json`);
+    const targetUrl = resolveAssetUrl('includes.json');
+    const res = await fetch(targetUrl);
     if (res.ok) {
       standardIncludes = await res.json();
     }
@@ -43,16 +57,17 @@ function normalizePawnIncludes(code: string): string {
 }
 
 self.onmessage = async (e: MessageEvent) => {
-  const { type, payload } = e.data;
+  const { type, payload, baseUrl } = e.data;
+  if (baseUrl) baseAssetUrl = baseUrl;
 
   if (type === 'init') {
-    await initIncludes();
+    await initIncludes(baseUrl);
     self.postMessage({ type: 'ready', includeCount: Object.keys(standardIncludes).length });
     return;
   }
 
   if (type === 'compile') {
-    await initIncludes();
+    await initIncludes(baseUrl);
     const { 
       files = {}, 
       entryFile = 'main.pwn', 
@@ -67,7 +82,7 @@ self.onmessage = async (e: MessageEvent) => {
     try {
       // @ts-ignore
       const compilerModule = await PawnCompiler({
-        locateFile: (path: string) => `${import.meta.env.BASE_URL}${path}`,
+        locateFile: (path: string) => resolveAssetUrl(path),
         print: (text: string) => {
           stdoutLines.push(text);
         },
